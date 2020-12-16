@@ -272,6 +272,7 @@ SSH_PORT="22"
 ID_RSA=""
 
 SRC_FOLDER=""
+SRC_FOLDER_TRUNCATED=""
 DEST_FOLDER=""
 EXCLUSION_FILE=""
 LOG_DIR="$HOME/.$APPNAME"
@@ -323,6 +324,7 @@ while :; do
 		--)
 			shift
 			SRC_FOLDER="$1"
+            SRC_FOLDER_TRUNCATED="${1%/}"
 			DEST_FOLDER="$2"
 			EXCLUSION_FILE="$3"
 			break
@@ -335,6 +337,7 @@ while :; do
 			;;
 		*)
 			SRC_FOLDER="$1"
+            SRC_FOLDER_TRUNCATED="${1%/}"
 			DEST_FOLDER="$2"
 			EXCLUSION_FILE="$3"
 			break
@@ -374,10 +377,7 @@ if ! fn_test_file_exists_src ${SRC_FOLDER}; then
 	exit 1
 fi
 
-# Now strip off last slash from source folder.
-SRC_FOLDER="${SRC_FOLDER%/}"
-
-for ARG in "$SRC_FOLDER" "$DEST_FOLDER" "$EXCLUSION_FILE"; do
+for ARG in "$SRC_FOLDER_TRUNCATED" "$DEST_FOLDER" "$EXCLUSION_FILE"; do
 	if [[ "$ARG" == *"'"* ]]; then
 		fn_log_error 'Source and destination directories may not contain single quote characters.'
 		exit 1
@@ -408,7 +408,7 @@ fi
 #
 # The check is performed by taking the second row
 # of the output of the first command.
-if [[ "$(fn_df_t_src "${SRC_FOLDER}" | awk '{print $2}' | grep -c -i -e "fat")" -gt 0 ]]; then
+if [[ "$(fn_df_t_src "${SRC_FOLDER_TRUNCATED}" | awk '{print $2}' | grep -c -i -e "fat")" -gt 0 ]]; then
 	fn_log_info "Source file-system is a version of FAT."
 	fn_log_info "Using the --modify-window rsync parameter with value 2."
 	RSYNC_FLAGS="${RSYNC_FLAGS} --modify-window=2"
@@ -539,7 +539,7 @@ while : ; do
 	LOG_FILE="$LOG_DIR/$(date +"%Y-%m-%d-%H%M%S").log"
 
 	fn_log_info "Starting backup..."
-	fn_log_info "From: $SSH_SRC_FOLDER_PREFIX$SRC_FOLDER/"
+	fn_log_info "From: $SSH_SRC_FOLDER_PREFIX$SRC_FOLDER"
 	fn_log_info "To:   $SSH_DEST_FOLDER_PREFIX$DEST/"
 
 	CMD="rsync"
@@ -558,7 +558,7 @@ while : ; do
 		CMD="$CMD --exclude-from '$EXCLUSION_FILE'"
 	fi
 	CMD="$CMD $LINK_DEST_OPTION"
-	CMD="$CMD -- '$SSH_SRC_FOLDER_PREFIX$SRC_FOLDER/' '$SSH_DEST_FOLDER_PREFIX$DEST/'"
+	CMD="$CMD -- '$SSH_SRC_FOLDER_PREFIX$SRC_FOLDER' '$SSH_DEST_FOLDER_PREFIX$DEST/'"
 
 	fn_log_info "Running command:"
 	fn_log_info "$CMD"
