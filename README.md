@@ -1,4 +1,6 @@
-# Rsync time backup
+# Rsync Time Backup
+> Time Machine-Style incremental backups using rsync
+---
 
 This script offers Time Machine-style backup using rsync. It creates incremental backups of files and directories to the destination of your choice. The backups are structured in a way that makes it easy to recover any file at any point in time.
 
@@ -6,11 +8,17 @@ It works on Linux, macOS and Windows (via WSL or Cygwin). The main advantage ove
 
 On macOS, it has a few disadvantages compared to Time Machine - in particular it does not auto-start when the backup drive is plugged (though it can be achieved using a launch agent), it requires some knowledge of the command line, and no specific GUI is provided to restore files. Instead files can be restored by using any file explorer, including Finder, or the command line.
 
-## Installation
+## Difference to laurent22/rsync-time-backup
+This repository is a fork of [laurent22/rsync-time-backup](https://github.com/laurent22/rsync-time-backup). At this place, thanks a lot to laurent22 for this amazing script.
 
-```
-git clone https://github.com/laurent22/rsync-time-backup
-```
+Compared to the original version, this fork provides:
+- `XDG` base directory support
+- `--delta-time/-d` option
+- Distinguish between sources with/without trailing backslash (as we are used to from rsync)
+
+## Installation
+- Clone this repository.
+- Additionally, copy `rsync_tmbackup.sh` somewhere to your path.
 
 ## Usage
 
@@ -35,7 +43,6 @@ Options
 ```
 
 ## Features
-
 * Each backup is on its own folder named after the current timestamp. Files can be copied and restored directly, without any intermediate tool.
 
 * Backup to/from remote destinations over SSH.
@@ -53,7 +60,6 @@ Options
 * "latest" symlink that points to the latest successful backup.
 
 ## Examples
-
 * Backup the home folder to backup_drive
 
 ```
@@ -90,8 +96,7 @@ rsync_tmbackup.sh user@example.com:/home /mnt/backup_drive
 */1 * * * * if grep -qs /mnt/mydrive /proc/mounts; then rsync_tmbackup.sh --delta-time 3600 /mnt/mydrive /mnt/backup; fi
 ```
 
-## Backup expiration logic
-
+## Backup Expiration Logic
 Backup sets are automatically deleted following a simple expiration strategy defined with the `--strategy` flag. This strategy is a series of time intervals with each item being defined as `x:y`, which means "after x days, keep one backup every y days". The default strategy is `1:1 30:7 365:30`, which means:
 
 - After **1** day, keep one backup every **1** day (**1:1**).
@@ -100,43 +105,33 @@ Backup sets are automatically deleted following a simple expiration strategy def
 
 Before the first interval (i.e. by default within the first 24h) it is implied that all backup sets are kept. Additionally, if the backup destination directory is full, the oldest backups are deleted until enough space is available.
 
-## Exclusion file
-
+## Exclusion File
 An optional exclude file can be provided as a third parameter. It should be compatible with the `--exclude-from` parameter of rsync. See [this tutorial](https://sites.google.com/site/rsync2u/home/rsync-tutorial/the-exclude-from-option) for more information.
 
-## Built-in lock
-
+## Built-in Lock
 The script is designed so that only one backup operation can be active for a given directory. If a new backup operation is started while another is still active (i.e. it has not finished yet), the new one will be automaticalled interrupted. Thanks to this the use of `flock` to run the script is not necessary.
 
-## Rsync options
-
+## Rsync Options
 To display the rsync options that are used for backup, run `./rsync_tmbackup.sh --rsync-get-flags`. It is also possible to add or remove options using the `--rsync-set-flags` option. For example, to exclude backing up permissions and groups:
 
 	rsync_tmbackup --rsync-set-flags "--numeric-ids --links --hard-links \
 	--one-file-system --archive --no-perms --no-groups --itemize-changes" /src /dest
 
-## No automatic backup expiration
-
+## No Automatic Backup Expiration
 An option to disable the default behaviour to purge old backups when out of space. This option is set with the `--no-auto-expire` flag.
 
-
-## How to restore
-
+## How to Restore
 The script creates a backup in a regular directory so you can simply copy the files back to the original directory. You could do that with something like `rsync -aP /path/to/last/backup/ /path/to/restore/to/`. Consider using the `--dry-run` option to check what exactly is going to be copied. Use `--delete` if you also want to delete files that exist in the destination but not in the backup (obviously extra care must be taken when using this option).
 
-## Extensions
-
-* [rtb-wrapper](https://github.com/thomas-mc-work/rtb-wrapper): Allows creating backup profiles in config files. Handles both backup and restore operations.
-* [time-travel](https://github.com/joekerna/time-travel): Smooth integration into OSX Notification Center
-
 ## TODO
-
 * Check source and destination file-system (`df -T /dest`). If one of them is FAT, use the --modify-window rsync parameter (see `man rsync`) with a value of 1 or 2
 * Add `--whole-file` arguments on Windows? See http://superuser.com/a/905415/73619
 * Minor changes (see TODO comments in the source).
 
-## LICENSE
+## Credits
+Thanks to [laurent22](https://github.com/laurent22/rsync-time-backup), the original author of this project, as well as everyone else who has contributed to it.
 
+## LICENSE
 The MIT License (MIT)
 
 Copyright (c) 2013-2018 Laurent Cozic
