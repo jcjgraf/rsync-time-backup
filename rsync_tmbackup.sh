@@ -51,6 +51,9 @@ fn_display_usage() {
 	echo "                        After 365 days keep one backup every 30 days."
 	echo " --no-auto-expire       Disable automatically deleting backups when out of space. Instead an error"
 	echo "                        is logged, and the backup is aborted."
+	echo " -d, --delta-time       Specify the minimal time in seconds between the last successful backup and"
+    echo "                        the currently initiated one. If the time difference is shorter than the"
+    echo "                        required delta time, the backup is terminated."
 	echo ""
 	echo "For more detailed help, please see the README file:"
 	echo ""
@@ -279,6 +282,7 @@ LOG_DIR="${XDG_DATA_HOME:-$HOME}/$APPNAME"
 AUTO_DELETE_LOG="1"
 EXPIRATION_STRATEGY="1:1 30:7 365:30"
 AUTO_EXPIRE="1"
+DELTA_TIME="0"
 
 RSYNC_FLAGS="-D --numeric-ids --links --hard-links --one-file-system --itemize-changes --times --recursive --perms --owner --group --stats --human-readable"
 
@@ -321,6 +325,10 @@ while :; do
 		--no-auto-expire)
 			AUTO_EXPIRE="0"
 			;;
+        -d|--delta-time)
+            shift
+            DELTA_TIME=$1
+            ;;
 		--)
 			shift
 			SRC_FOLDER="$1"
@@ -507,6 +515,21 @@ while : ; do
 		# If the path is relative, it needs to be relative to the destination. To keep
 		# it simple, just use an absolute path. See http://serverfault.com/a/210058/118679
 		PREVIOUS_DEST="$(fn_get_absolute_path "$PREVIOUS_DEST")"
+
+        # Check if it is time for a new backup
+        latest_stamp=$(fn_parse_date $(basename "$PREVIOUS_DEST"))
+        now_stamp=$(date +%s)
+
+        diff=$(( now_stamp - latest_stamp))
+
+        if (( diff < DELTA_TIME )); then
+            fn_log_info "$diff seconds have passed since the last backup. But a minimal delta time of $DELTA_TIME is configured. Exiting"
+            fn_log_info ""
+            exit 1
+        fi
+
+        fn_log_info "Previous backup is $diff seconds ago"
+
 		fn_log_info "Previous backup found - doing incremental backup from $SSH_DEST_FOLDER_PREFIX$PREVIOUS_DEST"
 		LINK_DEST_OPTION="--link-dest='$PREVIOUS_DEST'"
 	fi

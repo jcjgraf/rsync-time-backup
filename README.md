@@ -8,24 +8,31 @@ On macOS, it has a few disadvantages compared to Time Machine - in particular it
 
 ## Installation
 
-	git clone https://github.com/laurent22/rsync-time-backup
+```
+git clone https://github.com/laurent22/rsync-time-backup
+```
 
 ## Usage
 
-	Usage: rsync_tmbackup.sh [OPTION]... <[USER@HOST:]SOURCE> <[USER@HOST:]DESTINATION> [exclude-pattern-file]
+```
+Usage: rsync_tmbackup.sh [OPTION]... <[USER@HOST:]SOURCE> <[USER@HOST:]DESTINATION> [exclude-pattern-file]
 
-	Options
-	 -p, --port           SSH port.
-	 -h, --help           Display this help message.
-	 --rsync-get-flags    Display the default rsync flags that are used for backup.
-	 --rsync-set-flags    Set the rsync flags that are going to be used for backup.
-	 --log-dir            Set the log file directory. If this flag is set, generated files will
-	                      not be managed by the script - in particular they will not be
-	                      automatically deleted.
-	 --strategy           Set the expiration strategy. Default: "1:1 30:7 365:30" means after one
-	                      day, keep one backup per day. After 30 days, keep one backup every 7 days.
-	                      After 365 days keep one backup every 30 days.
-	 --no-auto-expire     Set option to disable automatically purging old backups when out of space.
+Options
+ -p, --port           SSH port.
+ -h, --help           Display this help message.
+ --rsync-get-flags    Display the default rsync flags that are used for backup.
+ --rsync-set-flags    Set the rsync flags that are going to be used for backup.
+ --log-dir            Set the log file directory. If this flag is set, generated files will
+                      not be managed by the script - in particular they will not be
+                      automatically deleted.
+ --strategy           Set the expiration strategy. Default: "1:1 30:7 365:30" means after one
+                      day, keep one backup per day. After 30 days, keep one backup every 7 days.
+                      After 365 days keep one backup every 30 days.
+ --no-auto-expire     Set option to disable automatically purging old backups when out of space.
+ -d, --delta-time     Specify the minimal time in seconds between the last successful backup and
+                      the currently initiated one. If the time difference is shorter than the
+                      required delta time, the backup is terminated.
+```
 
 ## Features
 
@@ -46,27 +53,42 @@ On macOS, it has a few disadvantages compared to Time Machine - in particular it
 * "latest" symlink that points to the latest successful backup.
 
 ## Examples
-	
+
 * Backup the home folder to backup_drive
-	
-		rsync_tmbackup.sh /home /mnt/backup_drive  
+
+```
+rsync_tmbackup.sh /home /mnt/backup_drive
+```
 
 * Backup with exclusion list:
-	
-		rsync_tmbackup.sh /home /mnt/backup_drive excluded_patterns.txt
+
+```
+rsync_tmbackup.sh /home /mnt/backup_drive excluded_patterns.txt
+```
 
 * Backup to remote drive over SSH, on port 2222:
 
-		rsync_tmbackup.sh -p 2222 /home user@example.com:/mnt/backup_drive
-
+```
+rsync_tmbackup.sh -p 2222 /home user@example.com:/mnt/backup_drive
+```
 
 * Backup from remote drive over SSH:
 
-		rsync_tmbackup.sh user@example.com:/home /mnt/backup_drive
+```
+rsync_tmbackup.sh user@example.com:/home /mnt/backup_drive
+```
 
-* To mimic Time Machine's behaviour, a cron script can be setup to backup at regular interval. For example, the following cron job checks if the drive "/mnt/backup" is currently connected and, if it is, starts the backup. It does this check every 1 hour.
-		
-		0 */1 * * * if grep -qs /mnt/backup /proc/mounts; then rsync_tmbackup.sh /home /mnt/backup; fi
+* To mimic Time Machine's behaviour, a cron script can be setup to backup at regular interval. For example, the following cron job checks if the drive `/mnt/backup` is currently connected and, if it is, starts the backup. It does this check every 1 hour.
+
+```
+0 */1 * * * if grep -qs /mnt/backup /proc/mounts; then rsync_tmbackup.sh /home /mnt/backup; fi
+```
+
+* To backup an external drive which is mounted only erratically we can use a frequently running crone job together with the `--delta-time` option of `rsync_tmbackup.sh`. The following crone job checks if the drive `/mnt/mydrive` is connected and backups it in case it has not been backup for more than 1 hour. In order to detect when the drive is available, it checks this every minute.
+
+```
+*/1 * * * * if grep -qs /mnt/mydrive /proc/mounts; then rsync_tmbackup.sh --delta-time 3600 /mnt/mydrive /mnt/backup; fi
+```
 
 ## Backup expiration logic
 
@@ -96,8 +118,8 @@ To display the rsync options that are used for backup, run `./rsync_tmbackup.sh 
 ## No automatic backup expiration
 
 An option to disable the default behaviour to purge old backups when out of space. This option is set with the `--no-auto-expire` flag.
-	
-	
+
+
 ## How to restore
 
 The script creates a backup in a regular directory so you can simply copy the files back to the original directory. You could do that with something like `rsync -aP /path/to/last/backup/ /path/to/restore/to/`. Consider using the `--dry-run` option to check what exactly is going to be copied. Use `--delete` if you also want to delete files that exist in the destination but not in the backup (obviously extra care must be taken when using this option).
